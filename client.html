@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Test Client</title>
+
+	<style>
+		label {
+			display: inline-block;
+			width: 5em;
+			text-align: right;
+		}
+	</style>
+</head>
+<body>
+
+	<form>
+		<label for="api-id">API ID:</label>
+		<input name="api-id" type="text" value="my_api_id" autofocus>
+		<br>
+
+		<label for="api-id">API secret:</label>
+		<input name="api-secret" type="text" value="$ecret">
+		<br>
+
+		<input type="submit" value="send">
+	</form>
+
+	<p id="message"></p>
+
+<script src="jquery-2.1.4.min.js"></script>
+<script>
+
+/**
+ * Browser compatiblity:
+ *
+ * - `Blob` constructor: IE 10+. Not supported by Opera Mini.
+ *
+ * Limitations:
+ *
+ * - Safari currently (8.0.6) opens the `Blob` link in a new tab (`blob:` URI)
+ *   instead of triggering a download / file save dialog.
+ */
+
+
+var state = {};
+
+
+/**
+ * Custom jQuery AJAX transport that returns either a JSON object or a `Blob`.
+ */
+$.ajaxTransport("+binary-or-json", function (options, originalOptions, jqXHR) {
+
+	return {
+		send: function (headers, callback) {
+
+			if (options.async === undefined) {
+				options.async = true;
+			}
+
+
+			var xhr = new XMLHttpRequest();
+			xhr.responseType = 'blob';
+
+			function callCallback(value) {
+				callback(
+					xhr.status,
+					xhr.statusText,
+					value,
+					xhr.getAllResponseHeaders()
+				);
+			}
+
+			xhr.addEventListener('load', function () {
+
+				var mimeType = xhr.response.type;
+				var blob = xhr.response;
+
+				if (mimeType === 'application/json') {
+
+					// Workaround … Decode `blob` back as UTF-8 encoded
+					// string.
+					//
+					// TODO: Check if there is a more elegant way to do this -->
+					var reader = new FileReader();
+
+					reader.onload = function () {
+						var text = reader.result;
+						var object = JSON.parse(text);
+
+						callCallback({ 'binary-or-json': object });
+					};
+
+					reader.readAsText(blob);
+					// <---
+				}
+				else {
+					// Binary data, return `Blob`
+					var result = {};
+					result[options.dataType] = blob;
+
+					callCallback(result);
+				}
+			});
+
+			xhr.open(
+				options.type,
+				options.url,
+				options.async,
+				options.username,
+				options.password
+			);
+
+			// Add all provided HTTP headers
+			for (var i in headers) {
+				xhr.setRequestHeader(i, headers[i]);
+			}
+
+			xhr.send(options.data);
+		},
+
+		abort: function () {
+			jqXHR.abort();
+		}
+	};
+});
+
+
+
+/**
+ * Sets an HTTP Basic Authentication header.
+ */
+function setAuthenticationHeader(xhr, username, password) {
+
+	var base64Value = btoa(username + ':' + password)
+	xhr.setRequestHeader('Authorization', 'Basic ' + base64Value);
+}
+
+
+
+function notify(message) {
+	message = message || '';
+	$('#message').html(message);
+}
+
+
+
+/**
+ * Make a request to the API, which returns either JSON or some binary data
+ * (randomly, e.g. JSON if there is an error).
+ */
+function makeRequest() {
+
+	var id     = $('input[name="api-id"]').val();
+	var secret = $('input[name="api-secret"]').val();
+
+	notify(null);
+
+	$.ajax({
+		url: 'http://127.0.0.1:8000/data',
+		processData: false,
+		dataType: 'binary-or-json',
+
+		beforeSend: function (xhr) {
+			setAuthenticationHeader(xhr, id, secret);
+		},
+
+		statusCode: {
+			200: function (response) {
+				console.log('Got:', response);
+
+				var gotBlob = response instanceof Blob;
+				if (gotBlob) {
+					state.blob = response;
+				}
+
+				var s = gotBlob ?
+				        '<a class="blob-link" href="#">a Blob</a>' :
+				        'JSON';
+
+				notify('Got ' + s + '.');
+			},
+
+			// Unauthorized
+			401: function (response) {
+				notify('Unauthorized');
+			},
+		}
+	});
+}
+
+
+
+// TODO: Check if there's a way to make this work with Cordova
+//
+function saveBlobToFile(blob, filename) {
+
+	window.URL = window.URL || window.webkitURL;
+
+	var downloadLink = document.createElement('a');
+	// downloadLink.style.display = 'none';
+
+	downloadLink.download = filename;
+
+	// Or operator: Gecko vs. webkit
+	downloadLink.href = (window.URL || window.webkitURL).createObjectURL(blob);
+
+	// Clean up the DOM after "clicking"
+	downloadLink.onclick = function destroyClickedElement(event) {
+		var node = event.target;
+		node.parentNode.removeChild(node);
+	};
+
+	// Needs to be inserted into the DOM for Firefox (not Chrome and Safari)
+	document.body.appendChild(downloadLink);
+
+	downloadLink.click();
+}
+
+
+
+$(document).ready(function () {
+
+	$('form').on('submit', function (event) {
+		event.preventDefault();
+		makeRequest();
+	});
+
+	$(document).on('click', '.blob-link', function (event) {
+		event.preventDefault();
+		if (state.blob) {
+			saveBlobToFile(state.blob, 'document.pdf');
+		}
+	});
+});
+
+
+
+</script>
+</body>
+</html>
