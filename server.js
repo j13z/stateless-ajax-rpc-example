@@ -3,6 +3,8 @@
 
 var http = require('http');
 var fs   = require('fs');
+var amqp = require('amqplib');
+var uuid = require('node-uuid');
 
 var args = Array.prototype.slice.call(process.argv, 2);
 var port = args[0] || 8000;
@@ -33,6 +35,63 @@ var alternate = (function () {
 		return result === 0;
 	};
 })();
+
+
+
+
+makeRpcRequest().then(function (response) {
+	console.log(response);
+});
+
+
+
+
+/**
+ * @return {Promise}
+ */
+function makeRpcRequest() {
+
+	console.log('make request');
+
+	// Would proably look much nicer with ES6 arrow functions …
+
+	// FIXME: Don't connect *per request*.
+	return amqp.connect('amqp://localhost').then(function (connection) {
+
+		return connection.createChannel().then(function (channel) {
+
+			var deferred = Promise.defer();
+			var correlationId = uuid();
+
+			function maybeAnswer(message) {
+				if (message.properties.correlationId === correlationId) {
+					deferred.resolve(message.content.toString());
+				}
+			}
+
+			return channel.assertQueue('', { exclusive: true })
+			.then(function (result) {
+				var queue = result.queue;
+
+				return channel.consume(queue, maybeAnswer, { noAck: true })
+				.then(function () {
+					console.log(' [x] Requesting (RPC)');
+					var value = 'foo';    // FIXME
+
+					channel.sendToQueue('rpc_queue', new Buffer(value), {
+						correlationId: correlationId,
+						replyTo: queue
+					});
+
+					return deferred.promise;
+				});
+			});
+		});
+	})
+	.catch(function (error) {
+		console.error(error.stack);    // FIXME
+	});
+}
 
 
 
