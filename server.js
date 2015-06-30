@@ -150,10 +150,10 @@ app.post('/generate-pdf', function (request, response) {
 	// JavaScript web client.
 
 	if (alternate() === true) {
-		response.writeHead(200, {
-			'Content-Type': 'application/json; charset=UTF-8'
+		response.json({
+			success: false,
+			error: 'I’m afraid I can’t do that, Dave.'
 		});
-		response.end(JSON.stringify({ message: 'Hello World'}));
 	}
 	else {
 		var input = request.body.input;
