@@ -123,7 +123,7 @@ function makeRpcRequest(channel, data) {
 
 		return channel.consume(queue, maybeAnswer, { noAck: true })
 		.then(function () {
-			console.log(' [x] Requesting (RPC)');
+			console.log('Performing RPC request: ' + correlationId);
 
 			channel.sendToQueue('rpc_queue', new Buffer(data), {
 				correlationId: correlationId,
@@ -158,15 +158,21 @@ app.post('/generate-pdf', function (request, response) {
 	else {
 		var input = request.body.input;
 
-		makeRpcRequest(input).then(function (filename) {
-			console.log('RPC request result: "' + filename + '"');
+		makeRpcRequest(input).then(function (result) {
+			result = JSON.parse(result);
+
+			console.log(
+				'RPC result for ' + result.correlationId + ': "' +
+				result.filename + '"'
+			);
 
 			response.writeHead(200, { 'Content-Type': 'application/pdf' });
-			fs.createReadStream(filename).pipe(response);
+			fs.createReadStream(result.filename).pipe(response);
 		})
 		.catch(function (error) {
 			// FIXME
-			console.error(error);
+			console.error(error.stack);
+			console.log('Continuing …');
 		});
 	}
 });

@@ -11,12 +11,16 @@ function reply(channel, message) {
 
 	generatePdf(input).then(function (filename) {
 
+		var result = {
+			filename: filename,
+			correlationId: message.properties.correlationId
+		};
+
 		console.log(' [.] Serving request: ' + filename);
-		var response = new Buffer(filename);
 
 		channel.sendToQueue(
 			message.properties.replyTo,
-			response,
+			new Buffer(JSON.stringify(result)),
 			{ correlationId: message.properties.correlationId }
 		);
 
