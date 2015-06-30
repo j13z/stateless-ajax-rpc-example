@@ -5,14 +5,35 @@
 	<title>Test Client</title>
 
 	<style>
+		body {
+			max-width: 35em;
+			margin: auto;
+			line-height: 1.45;
+		}
+
 		label {
 			display: inline-block;
-			width: 5em;
+			width: 5rem;
 			text-align: right;
+			padding-right: 0.5rem;
+		}
+
+		form {
+			margin-top: 3em;
+		}
+
+		input[type="text"] {
+			width: 8rem;
+		}
+
+		input[type="submit"] {
+			margin-left: 5.8rem;
+			margin-top:  1rem;
 		}
 	</style>
 </head>
 <body>
+	<p>Example client that sends a request to generate a PDF document to the server. The server will return a <code>Blob</code> on success, or a JSON object (with a 200 response) when there is an error.</p>
 
 	<form>
 		<label for="api-id">API ID:</label>
@@ -171,7 +192,7 @@ function makeRequest() {
 	var id     = $('input[name="api-id"]').val();
 	var secret = $('input[name="api-secret"]').val();
 
-	notify(null);
+	notify('Requesting …');
 
 	$.ajax({
 		url: 'http://127.0.0.1:8000/generate-pdf',
