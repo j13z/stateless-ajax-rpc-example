@@ -8,20 +8,22 @@ var amqp = require('amqplib');
  */
 function reply(channel, message) {
 	var input = message.content.toString();
+	var correlationId = message.properties.correlationId;
 
-	generatePdf(input).then(function (filename) {
+	generatePdf(input, correlationId).then(function (filename) {
+
 
 		var result = {
 			filename: filename,
-			correlationId: message.properties.correlationId
+			correlationId: correlationId
 		};
 
-		console.log(' [.] Serving request: ' + filename);
+		console.log('Serving request ' + correlationId);
 
 		channel.sendToQueue(
 			message.properties.replyTo,
 			new Buffer(JSON.stringify(result)),
-			{ correlationId: message.properties.correlationId }
+			{ correlationId: correlationId }
 		);
 
 		channel.ack(message);
@@ -33,10 +35,10 @@ function reply(channel, message) {
 /**
  * @return {Promise}
  */
-function generatePdf(input) {
+function generatePdf(input, uuid) {
 	// TODO: Implement (require module)
 
-	console.log('Generate PDF for: "' + input + '"');
+	console.log('Generate PDF for ' + uuid);
 
 	return new Promise(function (resolve, reject) {
 		setTimeout(function () {
@@ -67,6 +69,6 @@ amqp.connect('amqp://localhost').then(function (connection) {
 	});
 })
 .then(function () {
-	console.log(' [x] Awaiting RPC requests');
+	console.log('Awaiting RPC requests');
 })
 .then(null, console.warn);    // FIXME
