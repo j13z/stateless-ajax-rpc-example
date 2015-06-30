@@ -150,10 +150,12 @@ app.post('/generate-pdf', function (request, response) {
 	// JavaScript web client.
 
 	if (alternate() === true) {
-		response.json({
-			success: false,
-			error: 'I’m afraid I can’t do that, Dave.'
-		});
+		setTimeout(function () {
+			response.json({
+				success: false,
+				error: 'I’m afraid I can’t do that, Dave.'
+			});
+		}, 200);
 	}
 	else {
 		var input = request.body.input;
