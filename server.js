@@ -3,14 +3,22 @@
 
 var http = require('http');
 var fs   = require('fs');
+
 var amqp = require('amqplib');
 var uuid = require('node-uuid');
 
+var express = require('express');
+var bodyParser = require('body-parser');
+
+
 var args = Array.prototype.slice.call(process.argv, 2);
 var port = args[0] || 8000;
+var rabbitMqUri = 'amqp://localhost';
 
 
-
+/**
+ * Primitive API authentication store.
+ */
 var credentialsStore = (function () {
 
 	var credentials = JSON.parse(fs.readFileSync('credentials.json'));
@@ -25,78 +33,22 @@ var credentialsStore = (function () {
 
 
 
-// Returns `true` or `false`, alternating
-var alternate = (function () {
-	var value = 0;
+// Express
 
-	return function () {
-		var result = value;
-		value = (value + 1) & 1;
-		return result === 0;
-	};
-})();
+var app = express();
+app.use(express.static('static'));
+app.use(bodyParser.json());    // parses all `application/json` requests
 
-
-
-
-makeRpcRequest().then(function (response) {
-	console.log(response);
+app.use(function (request, response, next) {
+	console.log('[Request]  ' + request.url);
+	next();
 });
 
 
 
-
+// TODO: Swap this out with some express-ready solution.
 /**
- * @return {Promise}
- */
-function makeRpcRequest() {
-
-	console.log('make request');
-
-	// Would proably look much nicer with ES6 arrow functions …
-
-	// FIXME: Don't connect *per request*.
-	return amqp.connect('amqp://localhost').then(function (connection) {
-
-		return connection.createChannel().then(function (channel) {
-
-			var deferred = Promise.defer();
-			var correlationId = uuid();
-
-			function maybeAnswer(message) {
-				if (message.properties.correlationId === correlationId) {
-					deferred.resolve(message.content.toString());
-				}
-			}
-
-			return channel.assertQueue('', { exclusive: true })
-			.then(function (result) {
-				var queue = result.queue;
-
-				return channel.consume(queue, maybeAnswer, { noAck: true })
-				.then(function () {
-					console.log(' [x] Requesting (RPC)');
-					var value = 'foo';    // FIXME
-
-					channel.sendToQueue('rpc_queue', new Buffer(value), {
-						correlationId: correlationId,
-						replyTo: queue
-					});
-
-					return deferred.promise;
-				});
-			});
-		});
-	})
-	.catch(function (error) {
-		console.error(error.stack);    // FIXME
-	});
-}
-
-
-
-/**
- * Parses and evaluates (authenticates) a HTTP Basic Authentication header.
+ * Parses and evaluates (authenticates) an HTTP Basic Authentication header.
  *
  * Sets a boolean `isAuthenticated` property on the response.
  */
@@ -104,7 +56,7 @@ var authenticate = (function () {
 
 	var splitRegex = /(.*):(.*)/;
 
-	return function (request) {
+	return function (request, response, next) {
 
 		var header = request.headers['authorization'];    // keys are lowercase
 		if (!header) {
@@ -125,80 +77,117 @@ var authenticate = (function () {
 		var password = parts[2];
 
 		request.isAuthenticated = credentialsStore.validate(username, password);
+
+		next();
+	};
+})();
+
+app.use(authenticate);
+
+
+
+
+// Returns `true` or `false`, alternating
+var alternate = (function () {
+	var value = 0;
+
+	return function () {
+		var result = value;
+		value = (value + 1) & 1;
+		return result === 0;
 	};
 })();
 
 
 
-http.ServerResponse.prototype.sendFile = function(filename, contentType) {
-	this.writeHead(200, { 'Content-Type': contentType });
-	fs.createReadStream(filename).pipe(this);
-}
 
+/**
+ * @return {Promise}
+ */
+function makeRpcRequest(channel, data) {
 
-var handlers = {
-	'/data': function (request, response) {
+	// Would proably look much nicer with ES6 arrow functions …
 
-		if (!request.isAuthenticated) {
-			response.statusCode = 401;    // Unauthorized
-			response.end();
-			return;
+	var deferred = Promise.defer();
+	var correlationId = uuid();
+
+	function maybeAnswer(message) {
+		if (message.properties.correlationId === correlationId) {
+			deferred.resolve(message.content.toString());
 		}
-
-		// Create either a JSON response or some other response
-		// (`application/pdf` here) that would be parsed as binary data by the
-		// JavaScript web client.
-
-		if (alternate() === true) {
-			response.writeHead(200, {
-				'Content-Type': 'application/json; charset=UTF-8'
-			});
-			response.end(JSON.stringify({ message: 'Hello World'}));
-		}
-		else {
-			setTimeout(function () {
-				response.writeHead(200, { 'Content-Type': 'application/pdf' });
-				fs.createReadStream('assets/document.pdf').pipe(response);
-			}, 300);
-		}
-	},
-
-	'/client': function (request, response) {
-		response.sendFile(
-			'client.html',
-			'text/html; charset=UTF-8'
-		);
-	},
-
-	'/jquery-2.1.4.min.js': function (request, response) {
-		response.sendFile(
-			'jquery-2.1.4.min.js',
-			'application/javascript; charset=UTF-8'
-		);
 	}
+
+	return channel.assertQueue('', { exclusive: true })
+	.then(function (result) {
+		var queue = result.queue;
+
+		return channel.consume(queue, maybeAnswer, { noAck: true })
+		.then(function () {
+			console.log(' [x] Requesting (RPC)');
+
+			channel.sendToQueue('rpc_queue', new Buffer(data), {
+				correlationId: correlationId,
+				replyTo: queue
+			});
+
+			return deferred.promise;
+		});
+	});
 }
 
 
-http.createServer(function (request, response) {
 
-	var handler = handlers[request.url];
+app.post('/generate-pdf', function (request, response) {
 
-	if (handler) {
-		authenticate(request);
+	if (!request.isAuthenticated) {
+		response.statusCode = 401;    // Unauthorized
+		response.end();
+		return;
+	}
 
-		console.log(
-			'[Request] ' + request.url +
-			(request.isAuthenticated ? ' (authenticated)' : '')
-		);
+	// Create either a JSON response or some other response
+	// (`application/pdf` here) that would be parsed as binary data by the
+	// JavaScript web client.
 
-		handler(request, response);
+	if (alternate() === true) {
+		response.writeHead(200, {
+			'Content-Type': 'application/json; charset=UTF-8'
+		});
+		response.end(JSON.stringify({ message: 'Hello World'}));
 	}
 	else {
-		response.statusCode = 404;
-		response.end();
+		var input = request.body.input;
+
+		makeRpcRequest(input).then(function (filename) {
+			console.log('RPC request result: "' + filename + '"');
+
+			response.writeHead(200, { 'Content-Type': 'application/pdf' });
+			fs.createReadStream(filename).pipe(response);
+		})
+		.catch(function (error) {
+			// FIXME
+			console.error(error);
+		});
 	}
+});
+
+
+
+
+// Connect to RabbitMQ, start the HTTP server
+//
+amqp.connect(rabbitMqUri).then(function (connection) {
+
+	return connection.createChannel().then(function (channel) {
+
+		makeRpcRequest = makeRpcRequest.bind(null, channel);
+
+		var server = app.listen(port, function () {
+			console.log('Server running at http://127.0.0.1:' + port);
+		});
+	});
 })
-.listen(port, '127.0.0.1');
+.catch(function (error) {
+	console.error(error.stack);    // FIXME
+});
 
-
-console.log('Server running at http://127.0.0.1:' + port);

@@ -10,6 +10,8 @@
   "author": "Johannes Schmitz <code@j13z.com>",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.13.1",
+    "express": "^4.13.0",
     "node-uuid": "^1.4.3"
   }
 }

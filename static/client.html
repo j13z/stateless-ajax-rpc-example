@@ -157,9 +157,17 @@ function makeRequest() {
 	notify(null);
 
 	$.ajax({
-		url: 'http://127.0.0.1:8000/data',
+		url: 'http://127.0.0.1:8000/generate-pdf',
+		method: 'POST',
+		data: JSON.stringify({ input: 'Hello, world!' }),
+
 		processData: false,
 		dataType: 'binary-or-json',
+		contentType: 'application/json',
+
+		beforeSend: function (xhr) {
+			setAuthenticationHeader(xhr, id, secret);
+		},
 
 		beforeSend: function (xhr) {
 			setAuthenticationHeader(xhr, id, secret);

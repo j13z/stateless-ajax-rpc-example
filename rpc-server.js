@@ -2,20 +2,45 @@
 
 var amqp = require('amqplib');
 
+
+/**
+ * Replies with a PDF filename.
+ */
 function reply(channel, message) {
-	// var n = parseInt(message.content.toString());
-	// console.log(' [.] fib(%d)', n);
-	console.log(' [.] serving request');
-	var response = 'hello';
+	var input = message.content.toString();
 
-	channel.sendToQueue(
-		message.properties.replyTo,
-		new Buffer(response.toString()),
-		{ correlationId: message.properties.correlationId }
-	);
+	generatePdf(input).then(function (filename) {
 
-	channel.ack(message);
+		console.log(' [.] Serving request: ' + filename);
+		var response = new Buffer(filename);
+
+		channel.sendToQueue(
+			message.properties.replyTo,
+			response,
+			{ correlationId: message.properties.correlationId }
+		);
+
+		channel.ack(message);
+	});
 }
+
+
+
+/**
+ * @return {Promise}
+ */
+function generatePdf(input) {
+	// TODO: Implement (require module)
+
+	console.log('Generate PDF for: "' + input + '"');
+
+	return new Promise(function (resolve, reject) {
+		setTimeout(function () {
+			resolve('static/document.pdf');
+		}, 300);
+	});
+}
+
 
 
 amqp.connect('amqp://localhost').then(function (connection) {
