@@ -40,16 +40,42 @@
  *
  * - Safari currently (8.0.6) opens the `Blob` link in a new tab (`blob:` URI)
  *   instead of triggering a download / file save dialog.
+ *
+ * - AJAX / API responses: Using a 4xx status code with jQuery's custom AJAX
+ *   transports here does not work well … The `xhr.responseText` property gets
+ *   lost somehow. For this reason the server returns 2xx codes for requests
+ *   that resulted in an application-level error and 4xx errors are reserved for
+ *   HTTP-level errors.
+ *   So basically, whenever the server is able to process a request on the
+ *   application level it responds with 200 and in the case of an error, it is
+ *   encoded into a JSON object (`success` and `error` properties here).
+ *
  */
 
 
 var state = {};
 
 
+
+// TODO: Check if there is a more elegant way to do this
+//
+function utf8FromBlob(blob, callback) {
+
+	var reader = new FileReader();
+
+	reader.onload = function () {
+		callback(reader.result)
+	};
+
+	reader.readAsText(blob);    // UTF-8 by default
+}
+
+
+
 /**
  * Custom jQuery AJAX transport that returns either a JSON object or a `Blob`.
  */
-$.ajaxTransport("+binary-or-json", function (options, originalOptions, jqXHR) {
+$.ajaxTransport("+blob-or-json", function (options, originalOptions, jqXHR) {
 
 	return {
 		send: function (headers, callback) {
@@ -62,14 +88,15 @@ $.ajaxTransport("+binary-or-json", function (options, originalOptions, jqXHR) {
 			var xhr = new XMLHttpRequest();
 			xhr.responseType = 'blob';
 
-			function callCallback(value) {
+			function complete(result) {
 				callback(
 					xhr.status,
 					xhr.statusText,
-					value,
+					result,
 					xhr.getAllResponseHeaders()
 				);
 			}
+
 
 			xhr.addEventListener('load', function () {
 
@@ -77,31 +104,28 @@ $.ajaxTransport("+binary-or-json", function (options, originalOptions, jqXHR) {
 				var blob = xhr.response;
 
 				if (mimeType === 'application/json') {
+					// (`xhr.response` is still a blob here.)
 
-					// Workaround … Decode `blob` back as UTF-8 encoded
-					// string.
+					// Since `xhr.responseType` was set to `blob`, we now have
+					// to decode the content back to a UTF-8 encoded string
+					// (and then parse it as JSON)
 					//
-					// TODO: Check if there is a more elegant way to do this -->
-					var reader = new FileReader();
+					utf8FromBlob(blob, function (text) {
 
-					reader.onload = function () {
-						var text = reader.result;
-						var object = JSON.parse(text);
-
-						callCallback({ 'binary-or-json': object });
-					};
-
-					reader.readAsText(blob);
-					// <---
+						complete({
+							'blob-or-json': JSON.parse(text)
+						});
+					});
 				}
 				else {
 					// Binary data, return `Blob`
 					var result = {};
 					result[options.dataType] = blob;
 
-					callCallback(result);
+					complete(result);
 				}
 			});
+
 
 			xhr.open(
 				options.type,
@@ -138,13 +162,6 @@ function setAuthenticationHeader(xhr, username, password) {
 
 
 
-function notify(message) {
-	message = message || '';
-	$('#message').html(message);
-}
-
-
-
 /**
  * Make a request to the API, which returns either JSON or some binary data
  * (randomly, e.g. JSON if there is an error).
@@ -162,12 +179,8 @@ function makeRequest() {
 		data: JSON.stringify({ input: 'Hello, world!' }),
 
 		processData: false,
-		dataType: 'binary-or-json',
+		dataType: 'blob-or-json',
 		contentType: 'application/json',
-
-		beforeSend: function (xhr) {
-			setAuthenticationHeader(xhr, id, secret);
-		},
 
 		beforeSend: function (xhr) {
 			setAuthenticationHeader(xhr, id, secret);
@@ -175,18 +188,18 @@ function makeRequest() {
 
 		statusCode: {
 			200: function (response) {
+				var gotBlob = response instanceof Blob;
+
 				console.log('Got:', response);
 
-				var gotBlob = response instanceof Blob;
 				if (gotBlob) {
 					state.blob = response;
+					notify('OK, got <a class="blob-link" href="#">a Blob</a>.');
 				}
-
-				var s = gotBlob ?
-				        '<a class="blob-link" href="#">a Blob</a>' :
-				        'JSON';
-
-				notify('Got ' + s + '.');
+				else if (response.success === false) {
+					// `application/json` response
+					notify('Error: ' + response.error);
+				}
 			},
 
 			// Unauthorized
@@ -199,8 +212,6 @@ function makeRequest() {
 
 
 
-// TODO: Check if there's a way to make this work with Cordova
-//
 function saveBlobToFile(blob, filename) {
 
 	window.URL = window.URL || window.webkitURL;
@@ -223,6 +234,13 @@ function saveBlobToFile(blob, filename) {
 	document.body.appendChild(downloadLink);
 
 	downloadLink.click();
+}
+
+
+
+function notify(message) {
+	message = message || '';
+	$('#message').html(message);
 }
 
 
