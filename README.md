@@ -23,6 +23,13 @@ Generate PDFs on the server, but *without keeping state* in form of client PDF d
 *Drawback:* Does not provide progress information; which is however not a drawback if no meaningful progress information can be generated anyway.
 
 
+## Run it
+
+- `npm install`
+- Start RabbitMQ server: `[shell1] $ rabbitmq-server`
+- Start web server: `[shell2] $ ./server.js`
+- Start RPC server: `[shell3] $ ./rpc-server.js` (add more instances as needed)
+
 
 ## Notes
 
