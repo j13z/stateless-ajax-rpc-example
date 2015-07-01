@@ -30,10 +30,25 @@
 			margin-left: 5.8rem;
 			margin-top:  1rem;
 		}
+
+		#message {
+			display: inline-block;
+			padding: 0.7em 1.3em;
+			border-radius: 0.15em;
+		}
+
+		#message.error {
+			background-color: rgba(255, 0, 0, 0.25);
+		}
+		#message.success {
+			background-color: rgba(0, 255, 0, 0.25);
+		}
 	</style>
 </head>
 <body>
-	<p>Example client that sends a request to generate a PDF document to the server. The server will return a <code>Blob</code> on success, or a JSON object (with a 200 response) when there is an error.</p>
+	<h1>Stateless AJAX RPC client</h1>
+
+	<p>Example client that sends a request to generate a PDF document to the server. The server will return a <code>Blob</code> on success, or a JSON object (with a 200 response) if there’s an error.</p>
 
 	<form>
 		<label for="api-id">API ID:</label>
@@ -215,11 +230,18 @@ function makeRequest() {
 
 				if (gotBlob) {
 					state.blob = response;
-					notify('OK, got <a class="blob-link" href="#">a Blob</a>.');
+					notify({
+						type: 'success',
+						message: 'OK, got ' +
+						         '<a class="blob-link" href="#">a Blob</a>.'
+					});
 				}
 				else if (response.success === false) {
 					// `application/json` response
-					notify('Error: ' + response.error);
+					notify({
+						type: 'error',
+						message: 'Got an error: ' + response.error
+					});
 				}
 			},
 
@@ -259,9 +281,15 @@ function saveBlobToFile(blob, filename) {
 
 
 
-function notify(message) {
-	message = message || '';
-	$('#message').html(message);
+function notify(options) {
+
+	if (typeof options === 'string') {
+		options = { message: options };
+	}
+
+	$('#message')
+		.html(options.message || '')
+		.attr('class', options.type || '');
 }
 
 
