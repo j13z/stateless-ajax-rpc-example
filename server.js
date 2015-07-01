@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 
-var http = require('http');
 var fs   = require('fs');
 
 var amqp = require('amqplib');
@@ -28,7 +27,7 @@ var credentialsStore = (function () {
 			var validArgs = id.length > 0 && secret.length > 0;
 			return validArgs && credentials[id] === secret;
 		}
-	}
+	};
 })();
 
 
@@ -145,11 +144,26 @@ app.post('/generate-pdf', function (request, response) {
 		return;
 	}
 
-	// Create either a JSON response or some other response
-	// (`application/pdf` here) that would be parsed as binary data by the
-	// JavaScript web client.
+	// Create either a JSON response or a binary response (`application/pdf`)
 
-	if (alternate() === true) {
+	var isSuccess = alternate();
+
+	if (isSuccess) {
+		var input = request.body.input;
+
+		makeRpcRequest(input).then(function (result) {
+
+			result = JSON.parse(result);
+			var filename = result.filename;
+
+			console.log('Got RPC result:  ' + filename);
+
+			response.writeHead(200, { 'Content-Type': 'application/pdf' });
+			fs.createReadStream(result.filename).pipe(response);
+		})
+		.catch(handleError);
+	}
+	else {
 		setTimeout(function () {
 			response.json({
 				success: false,
@@ -157,28 +171,15 @@ app.post('/generate-pdf', function (request, response) {
 			});
 		}, 200);
 	}
-	else {
-		var input = request.body.input;
-
-		makeRpcRequest(input).then(function (result) {
-			result = JSON.parse(result);
-
-			console.log(
-				'RPC result for ' + result.correlationId + ': "' +
-				result.filename + '"'
-			);
-
-			response.writeHead(200, { 'Content-Type': 'application/pdf' });
-			fs.createReadStream(result.filename).pipe(response);
-		})
-		.catch(function (error) {
-			// FIXME
-			console.error(error.stack);
-			console.log('Continuing …');
-		});
-	}
 });
 
+
+
+function handleError(error) {
+	// FIXME: Handle properly
+	console.error(error.stack);
+	console.log('Continuing …');
+}
 
 
 
@@ -190,7 +191,8 @@ amqp.connect(rabbitMqUri).then(function (connection) {
 
 		makeRpcRequest = makeRpcRequest.bind(null, channel);
 
-		var server = app.listen(port, function () {
+		// (Would use HTTPS for production)
+		app.listen(port, function () {
 			console.log('Server running at http://127.0.0.1:' + port);
 		});
 	});
