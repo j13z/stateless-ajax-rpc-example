@@ -212,7 +212,5 @@ amqp.connect(rabbitMqUri).then(function (connection) {
 		});
 	});
 })
-.catch(function (error) {
-	console.error(error.stack);    // FIXME
-});
+.catch(handleError);
 
