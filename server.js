@@ -159,7 +159,22 @@ app.post('/generate-pdf', function (request, response) {
 			console.log('Got RPC result:  ' + filename);
 
 			response.writeHead(200, { 'Content-Type': 'application/pdf' });
-			fs.createReadStream(result.filename).pipe(response);
+			var readStream = fs.createReadStream(filename);
+
+			readStream.pipe(response).on('finish', function () {
+
+				// Delete file, but don't wait for that
+				fs.unlink(filename, function (error) {
+					if (error) {
+						// FIXME: Handle properly.
+						console.error('Could not delete file');
+						handleError(error);
+					}
+					else {
+						console.log('Deleted ' + filename);
+					}
+				});
+			});
 		})
 		.catch(handleError);
 	}
