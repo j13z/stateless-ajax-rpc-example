@@ -9,6 +9,7 @@
   },
   "author": "Johannes Schmitz <code@j13z.com>",
   "license": "ISC",
+  "engine": "node 0.12.5",
   "dependencies": {
     "body-parser": "^1.13.1",
     "express": "^4.13.0",
