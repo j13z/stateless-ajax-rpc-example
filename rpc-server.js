@@ -49,11 +49,10 @@ function generateFile(input, uuid) {
 	var readStream  = fs.createReadStream('static/example_document.pdf');
 	var writeStream = fs.createWriteStream(outputFilename);
 
-	return new Promise(function (resolve, reject) {
+	return new Promise(function (resolve) {
 
 		// Mocked here: Just create the output file by copying an example file.
 		readStream.pipe(writeStream).on('finish', function () {
-console.log('writeStream finished');
 			// Simulate some work
 			setTimeout(function () {
 				resolve(outputFilename);
