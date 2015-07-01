@@ -32,6 +32,7 @@ Dependencies: RabbitMQ, Node.js
 - Start RabbitMQ server: `[shell1] $ rabbitmq-server`
 - Start web server: `[shell2] $ ./server.js`
 - Start RPC server: `[shell3] $ ./rpc-server.js` (add more instances as needed)
+- Open the browser client: [http://127.0.0.1:8000/client.html](http://127.0.0.1:8000/client.html)
 
 
 ## Notes
