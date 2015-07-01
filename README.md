@@ -1,27 +1,29 @@
-# jQuery AJAX Example with Mixed Response type
-
-Author: j13z
-
-*Example project I made for myself to test the mechanics of retrieving a "mixed" AJAX response via jQuery.*
-
-- Client makes an XHR requests to a server API using jQuery.
-- Server returns either JSON or binary data.
-- Client should be able to handle both. Requires custom AJAX transport for jQuery. Without jQuery you would have to work around all the browser compatibility issues on your own.
+# Stateless AJAX RPC Example
 
 
-## Use Case
+*Example project.*
 
-*Original use case:* Simple RPC call that generates a file (web server calls worker), but server should be stateless.
+- **Node.js web server** serves API requests. Contacts an **RCP server / worker** via RabbitMQ (AMQP) which generates files that should be served to the client (e.g. create a PDF or process an image / audio).
 
-- Request processing from a server that generates a file.
+- **Browser client** makes requests via jQuery using a custom AJAX transport. The client does not know the content type of the response in advance, it's either binary data on success, or JSON if there is an error.
+- The server system does not keep any state. It processes requests, sends a requests and forgets about them. Instead of responding with file links, it **sends binary data directly to the client**.
 
-- Keep the server **stateless**: Server should be able to handle a request by producing a file, sending it to the client *and then forgetting about it*. (The server can thus delete all temporary files on after sending the response.) An alternative would be to produce the file, deposit it on a local file system and send the client a link to the file. This however imposes the server the task of cleaning up / expiring files periodically, probably requiring another worker, if the server itself should be responsible only for HTTP.
+- Processing can be scaled to accommodate higher load by using multiple RPC server instances. (File processing is mocked here.)
 
-- No progress information is sent to the client (as it could not be generated anyway because the processing does not provide feedback).
+The main purpose of this example is to show how the "mixed" (unknown) AJAX response can be handled by the client using jQuery. (jQuery is used for browser compatibility.)
 
-- The file that’s served from the file system here would be generated via an RPC (and one or more RPC servers / workers) in a real scenario.
+
+
+## Motivation
+
+*Example use case:*
+
+Generate PDFs on the server, but *without keeping state* in form of client PDF documents on the server. Instead, send each client the PDF and forget about it. This frees the server from keeping track of processing result lifetimes etc.
+
+*Drawback:* Does not provide progress information; which is however not a drawback if no meaningful progress information can be generated anyway.
+
 
 
 ## Notes
 
-The server is just a very basic example. Would use HTTPS in a real scenario (Basic Authentication).
+Would use HTTPS in production.
