@@ -5,7 +5,7 @@
 
 - A **Node.js web server** serves API requests. Contacts an **RCP server / worker** via **RabbitMQ** (AMQP), which generates files that should be served to the client (e.g. create a PDF or process an image or audio).
 
-- The **browser client** makes requests using a custom jQuery AJAX transport. It does not know the content type of the response in advance: It's either binary data on success, or JSON if there is an error.
+- The **browser client** makes requests using a custom jQuery AJAX transport. It does not know the content type of the response in advance: It's either binary data on success, or JSON if there is an error. jQuery can’t handle binary (`Blob`) responses out of the box.
 
 - The server system **does not keep any state**. After processing the request, it sends a response and forgets about the request. Instead of responding with file links, it **sends binary data directly to the browser client** (or JSON in case of an error).
 
