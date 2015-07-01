@@ -3,12 +3,8 @@
   "private": true,
   "version": "0.0.1",
   "description": "Author: j13z",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
-  },
   "author": "Johannes Schmitz <code@j13z.com>",
-  "license": "ISC",
+  "license": "MIT",
   "engine": "node 0.12.5",
   "dependencies": {
     "amqplib": "^0.3.2",
