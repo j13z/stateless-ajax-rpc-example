@@ -11,6 +11,7 @@
   "license": "ISC",
   "engine": "node 0.12.5",
   "dependencies": {
+    "amqplib": "^0.3.2",
     "body-parser": "^1.13.1",
     "express": "^4.13.0",
     "node-uuid": "^1.4.3"
