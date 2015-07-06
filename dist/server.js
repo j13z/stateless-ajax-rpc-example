@@ -1,49 +1,57 @@
 #!/usr/bin/env node
 'use strict';
 
-var fs   = require('fs');
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-var amqp = require('amqplib');
-var uuid = require('node-uuid');
+var _fs = require('fs');
 
-var express = require('express');
-var bodyParser = require('body-parser');
+var _fs2 = _interopRequireDefault(_fs);
 
+var _amqplib = require('amqplib');
+
+var _amqplib2 = _interopRequireDefault(_amqplib);
+
+var _nodeUuid = require('node-uuid');
+
+var _nodeUuid2 = _interopRequireDefault(_nodeUuid);
+
+var _express = require('express');
+
+var _express2 = _interopRequireDefault(_express);
+
+var _bodyParser = require('body-parser');
+
+var _bodyParser2 = _interopRequireDefault(_bodyParser);
 
 var args = Array.prototype.slice.call(process.argv, 2);
 var port = args[0] || 8000;
 var rabbitMqUri = 'amqp://localhost';
-
 
 /**
  * Primitive API authentication store.
  */
 var credentialsStore = (function () {
 
-	var credentials = JSON.parse(fs.readFileSync('credentials.json'));
+	var credentials = JSON.parse(_fs2['default'].readFileSync('credentials.json'));
 
 	return {
-		validate: function (id, secret) {
+		validate: function validate(id, secret) {
 			var validArgs = id.length > 0 && secret.length > 0;
 			return validArgs && credentials[id] === secret;
 		}
 	};
 })();
 
-
-
 // Express
 
-var app = express();
-app.use(express.static('static'));
-app.use(bodyParser.json());    // parses all `application/json` requests
+var app = (0, _express2['default'])();
+app.use(_express2['default']['static']('static'));
+app.use(_bodyParser2['default'].json()); // parses all `application/json` requests
 
 app.use(function (request, response, next) {
 	console.log('[Request]  ' + request.url);
 	next();
 });
-
-
 
 // TODO: Swap this out with some express-ready solution.
 /**
@@ -57,13 +65,13 @@ var authenticate = (function () {
 
 	return function (request, response, next) {
 
-		var header = request.headers['authorization'];    // keys are lowercase
+		var header = request.headers['authorization']; // keys are lowercase
 		if (!header) {
 			return;
 		}
 
 		var base64Value = header.slice(6);
-		var utf8Value = (new Buffer(base64Value, 'base64')).toString('utf8');
+		var utf8Value = new Buffer(base64Value, 'base64').toString('utf8');
 
 		// FIXME: Has a Unicode encoding issue for multibyte UTF-8
 		var parts = utf8Value.match(splitRegex);
@@ -83,32 +91,24 @@ var authenticate = (function () {
 
 app.use(authenticate);
 
-
-
-
 // Returns `true` or `false`, alternating
 var alternate = (function () {
 	var value = 0;
 
 	return function () {
 		var result = value;
-		value = (value + 1) & 1;
+		value = value + 1 & 1;
 		return result === 0;
 	};
 })();
-
-
-
 
 /**
  * @return {Promise}
  */
 function makeRpcRequest(channel, data) {
 
-	// Would proably look much nicer with ES6 arrow functions …
-
 	var deferred = Promise.defer();
-	var correlationId = uuid();
+	var correlationId = (0, _nodeUuid2['default'])();
 
 	function maybeAnswer(message) {
 		if (message.properties.correlationId === correlationId) {
@@ -116,12 +116,11 @@ function makeRpcRequest(channel, data) {
 		}
 	}
 
-	return channel.assertQueue('', { exclusive: true })
-	.then(function (result) {
+	return channel.assertQueue('', { exclusive: true }).then(function (result) {
 		var queue = result.queue;
 
-		return channel.consume(queue, maybeAnswer, { noAck: true })
-		.then(function () {
+		return channel.consume(queue, maybeAnswer, { noAck: true }).then(function () {
+
 			console.log('Performing RPC request: ' + correlationId);
 
 			channel.sendToQueue('rpc_queue', new Buffer(data), {
@@ -134,12 +133,10 @@ function makeRpcRequest(channel, data) {
 	});
 }
 
-
-
 app.post('/generate-pdf', function (request, response) {
 
 	if (!request.isAuthenticated) {
-		response.statusCode = 401;    // Unauthorized
+		response.statusCode = 401; // Unauthorized
 		response.end();
 		return;
 	}
@@ -159,36 +156,31 @@ app.post('/generate-pdf', function (request, response) {
 			console.log('Got RPC result:  ' + filename);
 
 			response.writeHead(200, { 'Content-Type': 'application/pdf' });
-			var readStream = fs.createReadStream(filename);
+			var readStream = _fs2['default'].createReadStream(filename);
 
 			readStream.pipe(response).on('finish', function () {
 
 				// Delete file, but don't wait for that
-				fs.unlink(filename, function (error) {
+				_fs2['default'].unlink(filename, function (error) {
 					if (error) {
 						// FIXME: Handle properly.
 						console.error('Could not delete file');
 						handleError(error);
-					}
-					else {
+					} else {
 						console.log('Deleted ' + filename);
 					}
 				});
 			});
-		})
-		.catch(handleError);
-	}
-	else {
+		})['catch'](handleError);
+	} else {
 		setTimeout(function () {
 			response.json({
 				success: false,
-				error:  'I’m sorry, Dave. I’m afraid I can’t do that.'
+				error: 'I’m sorry, Dave. I’m afraid I can’t do that.'
 			});
 		}, 200);
 	}
 });
-
-
 
 function handleError(error) {
 	// FIXME: Handle properly
@@ -196,11 +188,9 @@ function handleError(error) {
 	console.log('Continuing …');
 }
 
-
-
 // Connect to RabbitMQ, start the HTTP server
 //
-amqp.connect(rabbitMqUri).then(function (connection) {
+_amqplib2['default'].connect(rabbitMqUri).then(function (connection) {
 
 	return connection.createChannel().then(function (channel) {
 
@@ -211,6 +201,4 @@ amqp.connect(rabbitMqUri).then(function (connection) {
 			console.log('Server running at http://127.0.0.1:' + port);
 		});
 	});
-})
-.catch(handleError);
-
+})['catch'](handleError);
