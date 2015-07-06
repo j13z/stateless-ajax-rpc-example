@@ -29,7 +29,7 @@ Generate PDFs on a server, but *without keeping state* in form of client PDF fil
 Dependencies: RabbitMQ, Node.js
 
 - `$ npm install`
-- Build the project: `$ ./node_modules/.bin/gulp` (or just `gulp`)
+- Build the project (compile ES6): `$ ./node_modules/.bin/gulp` (or just `gulp`)
 - Start RabbitMQ server: `[shell1] $ rabbitmq-server`
 - Start web server: `[shell2] $ ./dist/server.js`
 - Start RPC server: `[shell3] $ ./dist/rpc-server.js` (add more instances as needed)
