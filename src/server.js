@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
-import amqp from 'amqplib';
-import uuid from 'node-uuid';
+const fs   = require('fs');
+const amqp = require('amqplib');
+const uuid = require('node-uuid');
 
-import express from 'express';
-import bodyParser from 'body-parser';
+const express    = require('express');
+const bodyParser = require('body-parser');
 
 
 const args = Array.prototype.slice.call(process.argv, 2);

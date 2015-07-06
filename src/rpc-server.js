@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
-import amqp from 'amqplib';
+const fs   = require('fs');
+const amqp = require('amqplib');
 
 
 /**
