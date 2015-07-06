@@ -34,11 +34,13 @@
 	                            //
 	"unused"        : true,     // Require all defined variables be used
 
-	"strict"        : true,     // Requires all functions run in ES5 Strict Mode
+	"strict"        : false,    // (Not necessary for ES6)
 
 
 	// Environments / globals
 	// ----------------------
+
+	"esnext"        : true,
 
 	"browser"       : true,     // Web Browser (window, document, etc.)
 
@@ -46,8 +48,6 @@
 	                            // etc.)
 
 	"node"          : true,     // Node.js (require, module, process, etc.)
-
-	"jquery"        : true,
 
 
 	// Custom Globals
