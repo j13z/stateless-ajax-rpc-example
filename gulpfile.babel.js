@@ -15,7 +15,7 @@ const paths = {
 gulp.task('transpile', () =>
 	gulp.src(paths.es6)
 		.pipe($.babel())
-		.on('error', function (error) {
+		.on('error', error => {
 			console.warn(error.message + '\n' + error.codeFrame);
 			this.emit('end');    // prevent Gulp termination
 		})
