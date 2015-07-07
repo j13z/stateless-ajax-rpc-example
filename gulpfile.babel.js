@@ -1,8 +1,7 @@
-import gulp from 'gulp';
-import gulpLoadPlugins from 'gulp-load-plugins';
-import del from 'del';
-
-const $ = gulpLoadPlugins();
+const gulp = require('gulp');
+const $ = require('gulp-load-plugins')();
+const del = require('del');
+const jshintStylish = require('jshint-stylish');
 
 
 const paths = {
@@ -11,8 +10,14 @@ const paths = {
 };
 
 
+gulp.task('lint', () => {
+	return gulp.src(paths.es6)
+		.pipe($.jshint())
+		.pipe($.jshint.reporter(jshintStylish));
+});
 
-gulp.task('transpile', () => {
+
+gulp.task('transpile', [ 'lint' ], () => {
 	const stream = gulp.src(paths.es6)
 		.pipe($.babel())
 		.on('error', error => {
