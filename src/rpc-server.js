@@ -2,8 +2,8 @@
 
 const isRequired = require.main !== module;    // Is not run from shell
 
-const fs   = require('fs');
-const amqp = require('amqplib');
+import fs   from 'fs';
+import amqp from 'amqplib';
 
 
 /**
@@ -109,9 +109,8 @@ function handleError(error) {
 }
 
 
-if (isRequired) {
-	module.exports = connect;
-}
-else {
+if (!isRequired) {
     connect();
 }
+
+export default connect;

@@ -2,12 +2,12 @@
 
 const isRequired = require.main !== module;    // Is not run from shell
 
-const fs   = require('fs');
-const amqp = require('amqplib');
-const uuid = require('node-uuid');
+import fs   from 'fs';
+import amqp from 'amqplib';
+import uuid from 'node-uuid';
 
-const express    = require('express');
-const bodyParser = require('body-parser');
+import express    from 'express';
+import bodyParser from 'body-parser';
 
 
 const args = Array.prototype.slice.call(process.argv, 2);
@@ -238,9 +238,8 @@ function createServer(port) {
 
 
 
-if (isRequired) {
-	module.exports = createServer;
-}
-else {
+if (!isRequired) {
     createServer(port);
 }
+
+export default createServer;

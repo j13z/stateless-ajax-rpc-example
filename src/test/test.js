@@ -1,11 +1,12 @@
 /* global describe, it, before, after */
 
-const expect  = require('chai').expect;
-const request = require('supertest');
+import chai from 'chai';
+import request from 'supertest';
 
-const createWebServer  = require('../server');
-const connectRpcServer = require('../rpc-server');
+import createWebServer  from '../server';
+import connectRpcServer from '../rpc-server';
 
+const expect = chai.expect;
 
 const authValue = 'Basic bXlfYXBpX2lkOiRlY3JldA==';
 const testInput = 'Hello, world!';
