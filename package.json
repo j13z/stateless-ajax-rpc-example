@@ -4,6 +4,10 @@
   "version": "0.0.1",
   "description": "Stateless AJAX RPC example",
   "author": "Johannes Schmitz <code@j13z.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/j13z/stateless-ajax-rpc-example.git"
+  },
   "license": "MIT",
   "engine": "node 0.12.5",
   "dependencies": {
