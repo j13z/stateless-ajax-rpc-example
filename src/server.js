@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+const isRequired = require.main !== module;    // Is not run from shell
+
 const fs   = require('fs');
 const amqp = require('amqplib');
 const uuid = require('node-uuid');
@@ -30,16 +32,28 @@ const credentialsStore = (function () {
 
 
 
+function log() {
+
+	if (!isRequired) {
+		console.log.apply(null, arguments);
+	}
+}
+
+
+
 // Express
 
 const app = express();
 app.use(express.static('static'));
 app.use(bodyParser.json());    // parses all `application/json` requests
 
-app.use((request, response, next) => {
-	console.log('[Request]  ' + request.url);
-	next();
-});
+// Console logging
+if (!isRequired) {
+	app.use((request, response, next) => {
+		log('[Request]  ' + request.url);
+		next();
+	});
+}
 
 
 
@@ -55,8 +69,9 @@ const authenticate = (function () {
 
 	return (request, response, next) => {
 
-		const header = request.headers['authorization'];    // keys are lowercase
+		const header = request.headers['authorization'];   // keys are lowercase
 		if (!header) {
+			next();
 			return;
 		}
 
@@ -66,7 +81,8 @@ const authenticate = (function () {
 		// FIXME: Has a Unicode encoding issue for multibyte UTF-8
 		const parts = utf8Value.match(splitRegex);
 		if (!parts) {
-			console.log('Received invalid `Authorization` header:', header);
+			log('Received invalid `Authorization` header:', header);
+			next();
 			return;
 		}
 
@@ -117,7 +133,7 @@ function makeRpcRequest(channel, data) {
 
 		return channel.consume(queue, maybeAnswer, { noAck: true }).then(() => {
 
-			console.log('Performing RPC request: ' + correlationId);
+			log('Performing RPC request: ' + correlationId);
 
 			channel.sendToQueue('rpc_queue', new Buffer(data), {
 				correlationId: correlationId,
@@ -134,8 +150,7 @@ function makeRpcRequest(channel, data) {
 app.post('/generate-pdf', (request, response) => {
 
 	if (!request.isAuthenticated) {
-		response.statusCode = 401;    // Unauthorized
-		response.end();
+		response.status(401).end();    // Unauthorized
 		return;
 	}
 
@@ -151,7 +166,7 @@ app.post('/generate-pdf', (request, response) => {
 			result = JSON.parse(result);
 			const filename = result.filename;
 
-			console.log('Got RPC result:  ' + filename);
+			log('Got RPC result:  ' + filename);
 
 			response.writeHead(200, { 'Content-Type': 'application/pdf' });
 			const readStream = fs.createReadStream(filename);
@@ -166,7 +181,7 @@ app.post('/generate-pdf', (request, response) => {
 						handleError(error);
 					}
 					else {
-						console.log('Deleted ' + filename);
+						log('Deleted ' + filename);
 					}
 				});
 			});
@@ -188,24 +203,44 @@ app.post('/generate-pdf', (request, response) => {
 function handleError(error) {
 	// FIXME: Handle properly
 	console.error(error.stack);
-	console.log('Continuing …');
+	log('Continuing …');
 }
 
 
 
-// Connect to RabbitMQ, start the HTTP server
-//
-amqp.connect(rabbitMqUri).then(connection => {
+/**
+ * Connects to the RabbitMQ server and starts the web server.
+ *
+ * @return {Promise}
+ */
+function createServer(port) {
 
-	return connection.createChannel().then(channel => {
+	return amqp.connect(rabbitMqUri).then(connection => {
 
-		makeRpcRequest = makeRpcRequest.bind(null, channel);
+		return connection.createChannel().then(channel => {
 
-		// (Would use HTTPS for production)
-		app.listen(port, () => {
-			console.log('Server running at http://127.0.0.1:' + port);
-		});
+			makeRpcRequest = makeRpcRequest.bind(null, channel);
+
+			// (Would use HTTPS for production)
+			const server = app.listen(port, () => {
+				log('Server running at http://127.0.0.1:' + port);
+			});
+
+			return server;
+		})
+		.catch(handleError);
+	})
+	.catch(error => {
+		console.error('Could not connect to RabbitMQ server\n\n' + error.stack);
+		process.exit(1);
 	});
-})
-.catch(handleError);
+}
 
+
+
+if (isRequired) {
+	module.exports = createServer;
+}
+else {
+    createServer(port);
+}

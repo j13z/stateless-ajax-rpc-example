@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+const isRequired = require.main !== module;    // Is not run from shell
+
 const fs   = require('fs');
 const amqp = require('amqplib');
 
@@ -19,7 +21,7 @@ function reply(channel, message) {
 			correlationId: correlationId
 		};
 
-		console.log('Serving request ' + correlationId);
+		log('Serving request ' + correlationId);
 
 		channel.sendToQueue(
 			message.properties.replyTo,
@@ -41,7 +43,7 @@ function reply(channel, message) {
  */
 function generateFile(input, uuid) {
 
-	console.log('Generating file for request ' + uuid);
+	log('Generating file for request ' + uuid);
 
 	const outputFilename = 'outputs/' + uuid + '.pdf';
 	const readStream  = fs.createReadStream('static/example_document.pdf');
@@ -60,32 +62,56 @@ function generateFile(input, uuid) {
 }
 
 
+/**
+ * Connects to the RabbitMQ broker and listens for RPC requests.
+ *
+ * @return {Promise}
+ */
+function connect() {
 
-amqp.connect('amqp://localhost').then(connection => {
+	return amqp.connect('amqp://localhost').then(connection => {
 
-	process.once('SIGINT', () => {
-		connection.close();
-	});
-
-	return connection.createChannel().then(channel => {
-
-		const queueName = 'rpc_queue';
-
-		return channel.assertQueue(queueName, {
-			durable: false
-		})
-		.then(() => {
-			channel.prefetch(1);
-			return channel.consume(queueName, reply.bind(null, channel));
+		process.once('SIGINT', () => {
+			connection.close();
 		});
-	});
-})
-.then(() => {
-	console.log('Awaiting RPC requests');
-})
-.catch(handleError);
+
+		return connection.createChannel().then(channel => {
+
+			const queueName = 'rpc_queue';
+
+			return channel.assertQueue(queueName, {
+				durable: false
+			})
+			.then(() => {
+				channel.prefetch(1);
+				return channel.consume(queueName, reply.bind(null, channel));
+			});
+		});
+	})
+	.then(() => {
+		log('Awaiting RPC requests');
+	})
+	.catch(handleError);
+}
+
+
+
+function log() {
+
+	if (!isRequired) {
+		console.log.apply(null, arguments);
+	}
+}
 
 
 function handleError(error) {
 	console.warn(error);    // FIXME: Error handling / logging
+}
+
+
+if (isRequired) {
+	module.exports = connect;
+}
+else {
+    connect();
 }

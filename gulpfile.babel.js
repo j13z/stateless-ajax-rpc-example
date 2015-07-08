@@ -6,7 +6,8 @@ const jshintStylish = require('jshint-stylish');
 
 const paths = {
 	es6: 'src/**/*.js',
-	es5: 'dist'
+	es5: 'dist',
+	tests: 'dist/test/**/*.js'
 };
 
 
