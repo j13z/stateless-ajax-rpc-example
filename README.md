@@ -20,7 +20,7 @@ An alternative to the binary response format would be to embed the Base64 encodi
 
 Generally there are several ways to serve a “transient” file from an API, e.g.:
 
-1. **Base64-encode it** and embed it into a JSON response.
+1. **Base64-encode it** and embed it into a JSON response as a string.
   
   *Drawback:* Slight overhead (size, plus some encoding / decoding). *Benefit*: Easy to serve multiple files (e.g. formats) per response.
 
@@ -28,7 +28,7 @@ Generally there are several ways to serve a “transient” file from an API, e.
 
   *Drawback:* Stateful, requires file management / expiration.
 
-3. **Serve the binary file directly** to the client (via an API URL, not a URL to a temporary file), or JSON on error.
+3. **Send the binary file directly** to the client (binary response on an API URL, not a URL that links to a temporary file), or JSON on error.
 
   *Drawback:* Client needs to handle this rather odd response format, as demonstrated here.
 
