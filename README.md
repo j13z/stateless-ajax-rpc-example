@@ -18,11 +18,28 @@ An alternative to the binary response format would be to embed the Base64 encodi
 
 ## Motivation
 
-*Example use case:*
+Generally there are several ways to serve a “transient” file from an API, e.g.:
 
-Generate PDFs on a server, but *without keeping state* in form of client PDF files (that have yet to be retrieved) on the server. Instead, send each client the PDF and forget about it, i.e. delete the file. This frees the server from keeping track of file lifetimes etc.
+1. **Base64-encode it** and embed it into a JSON response.
+  
+  *Drawback:* Some overhead. *Benefit*: Easy to serve multiple files (e.g. formats) per response.
 
-*Drawback:* Does not provide progress information; which is however not a drawback if no meaningful progress information can be generated anyway.
+2. **Link to a static file** URL in the JSON response.
+
+  *Drawback:* Stateful, requires file management / expiration.
+
+3. **Serve the binary file directly** to the client (via an API URL, not a URL to a temporary file), or JSON on error.
+
+  *Drawback:* Client needs to handle this rather odd response format, as demonstrated here.
+
+4. Do something more exotic like pushing files via **WebSockets** (Socket.IO supports binary since 1.0).
+
+This example demonstrates approach **3**.
+
+
+### Example use case
+
+Generate PDFs on a server, but *without keeping state* in form of client PDF files (that have yet to be retrieved) on the server. Instead, send each client the PDF and forget about it, i.e. delete the file. This frees the server from keeping track of file lifetimes etc. (*Drawback:* Does not provide progress information; which is however not a drawback if no meaningful progress information can be generated anyway.)
 
 
 ## Run it
