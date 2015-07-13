@@ -3,7 +3,7 @@
 
 *An example project.*
 
-The main purpose of this example is to show how a “mixed” AJAX response with unknown content type can be handled by a browser client using jQuery. (jQuery’s AJAX implementation is used as it provides good browser compatibility.)
+The main purpose of this example is to show how a “mixed” AJAX response with unknown content type can be handled by a browser client using jQuery. (jQuery’s AJAX implementation is used as it provides good browser compatibility. This is *not* REST.)
 
 - A **Node.js web server** serves API requests. Contacts an **RCP server / worker** via **RabbitMQ** (AMQP), which generates files that should be served to the client (e.g. create a PDF or process an image or audio).
 
