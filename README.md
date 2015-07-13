@@ -22,7 +22,7 @@ Generally there are several ways to serve a “transient” file from an API, e.
 
 1. **Base64-encode it** and embed it into a JSON response.
   
-  *Drawback:* Some overhead. *Benefit*: Easy to serve multiple files (e.g. formats) per response.
+  *Drawback:* Slight overhead (size, plus some encoding / decoding). *Benefit*: Easy to serve multiple files (e.g. formats) per response.
 
 2. **Link to a static file** URL in the JSON response.
 
