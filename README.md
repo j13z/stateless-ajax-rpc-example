@@ -34,7 +34,7 @@ Generally there are several ways to serve a “transient” file from an API, e.
 
 4. Do something more exotic like pushing files via **WebSockets** (Socket.IO supports binary since 1.0).
 
-This example demonstrates approach **3**.
+This example demonstrates approach **3**. (That’s not to say that this approach is the best; the Base64 approach might better suited for most use cases.)
 
 
 ### Example use case
