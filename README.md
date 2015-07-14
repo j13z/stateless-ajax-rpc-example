@@ -5,9 +5,9 @@
 
 The main purpose of this example is to show how a “mixed” AJAX response with unknown content type can be handled by a browser client using jQuery. (jQuery’s AJAX implementation is used as it provides good browser compatibility. This is *not* REST.)
 
-- A **Node.js web server** serves API requests. Contacts an **RCP server / worker** via **RabbitMQ** (AMQP), which generates files that should be served to the client (e.g. create a PDF or process an image or audio).
+- A [**Node.js web server**](https://github.com/j13z/stateless-ajax-rpc-example/blob/master/src/server.js?ts=4) serves API requests. Contacts an [**RCP server / worker**](https://github.com/j13z/stateless-ajax-rpc-example/blob/master/src/rpc-server.js?ts=4) via **RabbitMQ** (AMQP), which generates files that should be served to the client (e.g. create a PDF or process an image or audio).
 
-- The **browser client** makes requests using a custom jQuery AJAX transport. It does not know the content type of the response in advance: It’s either binary data on success, or JSON if there is an error. jQuery can’t handle binary (`Blob`) responses out of the box.
+- The [**browser client**](https://github.com/j13z/stateless-ajax-rpc-example/blob/master/static/client.html?ts=4) makes requests using a custom jQuery AJAX transport. It does not know the content type of the response in advance: It’s either binary data on success, or JSON if there is an error. jQuery can’t handle binary (`Blob`) responses out of the box.
 
 - The server system **does not keep any state**. After processing the request, it sends a response and forgets about the request. Instead of responding with file links, it **sends binary data directly to the browser client** (or JSON in case of an error).
 
@@ -27,6 +27,8 @@ Generally there are several ways to serve a “transient” file from an API, e.
 2. **Link to a static file** URL in the JSON response.
 
   *Drawback:* Stateful, requires file management / expiration.
+  
+  *Benefit:* Processing can be “reified” as an item in a queue and [exposed as an endpoint](http://restcookbook.com/Resources/asynchroneous-operations/) (which could be RESTful). Progress information can then be provided via this endpoint (client polling).
 
 3. **Send the binary file directly** to the client (binary response on an API URL, not a URL that links to a temporary file), or JSON on error.
 
