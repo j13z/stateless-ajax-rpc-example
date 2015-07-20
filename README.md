@@ -3,7 +3,9 @@
 
 *An example project.*
 
-The main purpose of this example is to show how a “mixed” AJAX response with unknown content type can be handled by a browser client using jQuery. (jQuery’s AJAX implementation is used as it provides good browser compatibility. This is *not* REST.)
+The main purpose of this example is to show how a “mixed” AJAX response with unknown content type can be handled by a browser client using jQuery. (jQuery’s AJAX implementation is used as it provides good browser compatibility.) Also demonstrates how to use RabbitMQ for RPC from Node.js (via [`amqplib`](https://github.com/squaremo/amqp.node)).
+
+![Architecture Diagram](diagram.png)
 
 - A [**Node.js web server**](https://github.com/j13z/stateless-ajax-rpc-example/blob/master/src/server.js?ts=4) serves API requests. Contacts an [**RCP server / worker**](https://github.com/j13z/stateless-ajax-rpc-example/blob/master/src/rpc-server.js?ts=4) via **RabbitMQ** (AMQP), which generates files that should be served to the client (e.g. create a PDF or process an image or audio).
 
