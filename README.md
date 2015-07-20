@@ -3,19 +3,17 @@
 
 *An example project.*
 
-The main purpose of this example is to show how a “mixed” AJAX response with unknown content type can be handled by a browser client using jQuery. (jQuery’s AJAX implementation is used as it provides good browser compatibility.) Also demonstrates how to use RabbitMQ for RPC from Node.js (via [`amqplib`](https://github.com/squaremo/amqp.node)).
+The main purpose of this example is to show how a “mixed” AJAX response with unknown content type can be handled by a browser client using jQuery. Also demonstrates how to use RabbitMQ for RPC from Node.js (via [`amqplib`](https://github.com/squaremo/amqp.node)).
 
 ![Architecture Diagram](diagram.png)
 
 - A [**Node.js web server**](https://github.com/j13z/stateless-ajax-rpc-example/blob/master/src/server.js?ts=4) serves API requests. Contacts an [**RCP server / worker**](https://github.com/j13z/stateless-ajax-rpc-example/blob/master/src/rpc-server.js?ts=4) via **RabbitMQ** (AMQP), which generates files that should be served to the client (e.g. create a PDF or process an image or audio).
 
-- The [**browser client**](https://github.com/j13z/stateless-ajax-rpc-example/blob/master/static/client.html?ts=4) makes requests using a custom jQuery AJAX transport. It does not know the content type of the response in advance: It’s either binary data on success, or JSON if there is an error. jQuery can’t handle binary (`Blob`) responses out of the box.
+- The [**browser client**](https://github.com/j13z/stateless-ajax-rpc-example/blob/master/static/client.html?ts=4) makes requests using a custom jQuery AJAX transport. It does not know the content type of the response in advance: It’s either binary data on success, or JSON if there is an error. jQuery can’t handle binary (`Blob`) responses out of the box. (jQuery’s AJAX implementation is used as it provides good browser compatibility.)
 
 - The server system **does not keep any state**. After processing the request, it sends a response and forgets about the request. Instead of responding with file links, it **sends binary data directly to the browser client** (or JSON in case of an error).
 
 - Processing can be scaled to accommodate higher load by using multiple RPC server instances. (File processing is mocked here.)
-
-An alternative to the binary response format would be to embed the Base64 encoding into a JSON response. 
 
 
 ## Motivation
