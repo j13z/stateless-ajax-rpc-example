@@ -22,15 +22,19 @@ Generally there are several ways to serve a “transient” file from an API, e.
 
 1. **Base64-encode it** and embed it into a JSON response as a string.
   
-  *Drawback:* Slight overhead (size, plus some encoding / decoding). *Benefit*: Easy to serve multiple files (e.g. formats) per response.
+  *Drawback:* File size overhead (plus some encoding / decoding). 
+  
+  *Benefit*: Easy to serve multiple files (e.g. multiple formats) per response.
 
 2. **Link to a static file** URL in the JSON response.
 
   *Drawback:* Stateful, requires file management / expiration.
   
-  *Benefit:* Processing can be “reified” as an item in a queue and [exposed as an endpoint](http://restcookbook.com/Resources/asynchroneous-operations/) (which could be RESTful). Progress information can then be provided via this endpoint (client polling).
+  *Benefit:* If stateful anyway, processing can be “reified” as an item in a queue and [exposed as an endpoint](http://restcookbook.com/Resources/asynchroneous-operations/) (which could be RESTful). Progress information can then be provided via this endpoint (client polling).
 
 3. **Send the binary file directly** to the client (binary response on an API URL, not a URL that links to a temporary file), or JSON on error.
+
+  *Benefit:* Lightweight.
 
   *Drawback:* Client needs to handle this rather odd response format, as demonstrated here.
 
